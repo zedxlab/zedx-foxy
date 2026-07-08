@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ZedX Foxy — Live Streaming Proxy</title>
-  <link rel="icon" href="https://ibb.co/CKNvm76J" type="image/png">
+  <title>ZedX Foxy — FIFA World Cup 2026 Live</title>
+  <link rel="icon" href="https://i.ibb.co/F4NJmwXs/file-00000000115471faa85d6fe7097c0c63.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <style>
     :root {
@@ -36,8 +35,13 @@
       --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    *, *:focus, *:focus-visible, *:focus-within, *:active { outline: none !important; box-shadow: none !important; }
+    /* ── KILL ALL OUTLINES GLOBALLY ── */
+    *, *::before, *::after { outline: none !important; -webkit-tap-highlight-color: transparent; }
+    *:focus, *:focus-visible, *:focus-within, *:active { outline: none !important; box-shadow: none !important; }
+    a, button, input, select, textarea { outline: none !important; border: none !important; }
+    a:active, button:active { outline: none !important; }
     ::-webkit-focus-ring { display: none !important; }
+    ::selection { background: var(--gold-dim); color: var(--gold); }
     html { scroll-behavior: smooth; }
     body {
       background: var(--bg); color: var(--text);
@@ -45,14 +49,47 @@
       min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Stadium BG ── */
+    /* ══════════════════════════════════════
+       LOADING SCREEN
+    ══════════════════════════════════════ */
+    .loader-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: var(--bg); transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    .loader-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-logo {
+      width: 100px; height: 100px; border-radius: 50%;
+      border: 3px solid var(--gold-dark); box-shadow: 0 0 40px rgba(255,213,79,0.3), 0 0 80px rgba(255,213,79,0.1);
+      animation: loaderPulse 1.5s ease-in-out infinite;
+    }
+    .loader-text {
+      font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700;
+      color: var(--gold); margin-top: 20px; letter-spacing: 1px;
+    }
+    .loader-text .x { color: var(--emerald); }
+    .loader-sub { font-size: 12px; color: var(--text-dim); margin-top: 8px; letter-spacing: 2px; text-transform: uppercase; }
+    .loader-bar { width: 180px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 24px; overflow: hidden; }
+    .loader-bar-fill {
+      height: 100%; width: 0%; border-radius: 2px;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--emerald));
+      animation: loaderFill 2s ease-in-out forwards;
+    }
+    @keyframes loaderPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes loaderFill { 0% { width: 0%; } 100% { width: 100%; } }
+
+    /* ══════════════════════════════════════
+       STADIUM BG
+    ══════════════════════════════════════ */
     .stadium-bg {
       position: fixed; inset: 0; z-index: -1;
       background: url('https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1920&q=80') center/cover;
       filter: blur(50px) brightness(0.08) saturate(0.4); transform: scale(1.15);
     }
 
-    /* ── Navbar ── */
+    /* ══════════════════════════════════════
+       NAVBAR
+    ══════════════════════════════════════ */
     .navbar {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
       z-index: 200; width: calc(100% - 24px); max-width: 1200px;
@@ -63,8 +100,8 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
     .nav-brand { display: flex; align-items: center; gap: 10px; }
-    .nav-logo-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold-dark); }
-    .nav-brand-text { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; color: var(--gold); letter-spacing: -0.3px; }
+    .nav-logo-img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold-dark); box-shadow: 0 0 12px rgba(255,213,79,0.25); }
+    .nav-brand-text { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: var(--gold); letter-spacing: -0.3px; }
     .nav-brand-text .x { color: var(--emerald); }
     .nav-right { display: flex; align-items: center; gap: 12px; }
     .nav-live {
@@ -76,73 +113,66 @@
     .nav-live .dot { width: 6px; height: 6px; border-radius: 50%; background: #FF3B30; animation: pulse 1.5s infinite; }
     .nav-social { display: flex; gap: 6px; }
     .nav-social a {
-      width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+      width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
       background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-      color: var(--text-dim); transition: all var(--transition);
+      color: var(--text-dim); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
     }
-    .nav-social a:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: scale(1.1); }
+    .nav-social a:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: scale(1.15) rotate(5deg); }
+    .nav-social a:active { transform: scale(0.92); }
     .nav-social a svg { width: 16px; height: 16px; }
 
-    /* ── Main ── */
+    /* ══════════════════════════════════════
+       MAIN
+    ══════════════════════════════════════ */
     .main { max-width: 1200px; margin: 0 auto; padding: 80px 16px 40px; }
 
-    /* ── URL Input / Proxy Bar ── */
-    .proxy-bar {
-      background: var(--bg-glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 16px 20px; margin-bottom: 20px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-    }
-    .proxy-bar label {
-      display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px;
-    }
-    .proxy-input-row { display: flex; gap: 10px; align-items: center; }
-    .proxy-input {
-      flex: 1; padding: 12px 16px; border-radius: var(--radius-sm);
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      color: var(--white); font-size: 14px; font-family: 'Inter', monospace;
-      transition: all var(--transition);
-    }
-    .proxy-input::placeholder { color: var(--text-dim); }
-    .proxy-input:focus { border-color: var(--gold-dark); background: rgba(255,213,79,0.04); }
-    .proxy-btn {
-      padding: 12px 24px; border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-      color: #0D1117; font-weight: 700; font-size: 13px; font-family: inherit;
-      cursor: pointer; transition: all var(--transition); white-space: nowrap;
-      border: none;
-    }
-    .proxy-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,213,79,0.3); }
-    .proxy-btn:active { transform: translateY(0) scale(0.97); }
-    .proxy-hint { margin-top: 8px; font-size: 11px; color: var(--text-dim); }
-
-    /* ── Player ── */
+    /* ══════════════════════════════════════
+       PLAYER + GOLD GLOW
+    ══════════════════════════════════════ */
     .player-wrap {
       position: relative; border-radius: var(--radius); overflow: hidden;
-      background: #000; box-shadow: 0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+      background: #000;
+      box-shadow:
+        0 12px 48px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(255,213,79,0.15),
+        0 0 30px rgba(255,213,79,0.08),
+        0 0 60px rgba(255,213,79,0.04),
+        inset 0 0 0 1px rgba(255,213,79,0.1);
       aspect-ratio: 16/9;
+      transition: box-shadow 0.4s ease;
     }
+    .player-wrap:hover {
+      box-shadow:
+        0 16px 64px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255,213,79,0.3),
+        0 0 40px rgba(255,213,79,0.15),
+        0 0 80px rgba(255,213,79,0.08),
+        0 0 120px rgba(255,213,79,0.04),
+        inset 0 0 0 1px rgba(255,213,79,0.15);
+    }
+    .player-wrap::before {
+      content: ''; position: absolute; inset: -2px; z-index: 0; border-radius: calc(var(--radius) + 2px);
+      background: linear-gradient(135deg, rgba(255,213,79,0.3), transparent 40%, transparent 60%, rgba(57,231,95,0.2));
+      opacity: 0; transition: opacity 0.5s ease; pointer-events: none;
+    }
+    .player-wrap:hover::before { opacity: 1; }
     .player-wrap.fullscreen-mode {
       position: fixed; inset: 0; z-index: 9999; border-radius: 0;
       aspect-ratio: unset; width: 100vw; height: 100vh;
       box-shadow: none; border: none;
     }
-    .player-wrap.fullscreen-mode iframe {
-      width: 100%; height: 100%; aspect-ratio: unset;
-    }
-    .player-iframe {
-      width: 100%; height: 100%; display: block; border: none;
-      aspect-ratio: 16/9;
-    }
+    .player-wrap.fullscreen-mode::before { display: none; }
+    .player-wrap.fullscreen-mode iframe { width: 100%; height: 100%; aspect-ratio: unset; }
+    .player-iframe { width: 100%; height: 100%; display: block; border: none; aspect-ratio: 16/9; }
     .player-overlay {
-      position: absolute; top: 0; left: 0; right: 0;
+      position: absolute; top: 0; left: 0; right: 0; z-index: 10;
       padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
       background: linear-gradient(rgba(0,0,0,0.7) 0%, transparent 100%);
-      pointer-events: none; z-index: 10; transition: opacity 0.4s ease;
+      pointer-events: none; transition: opacity 0.4s ease;
     }
     .player-wrap.fullscreen-mode .player-overlay { padding: 18px 24px; }
-    .player-wrap:hover .player-overlay, .player-wrap.fullscreen-mode .player-overlay { opacity: 1; }
+    .player-wrap:hover .player-overlay { opacity: 1; }
     .player-brand {
       display: flex; align-items: center; gap: 8px;
       font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: var(--gold);
@@ -158,22 +188,25 @@
     }
     .player-live .dot { width: 6px; height: 6px; border-radius: 50%; background: #FF3B30; animation: pulse 1.5s infinite; }
     .player-controls {
-      position: absolute; bottom: 0; left: 0; right: 0;
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
       padding: 14px 18px; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
       background: linear-gradient(transparent 0%, rgba(0,0,0,0.7) 100%);
-      pointer-events: auto; z-index: 10; transition: opacity 0.4s ease;
+      pointer-events: auto; transition: opacity 0.4s ease;
     }
-    .player-wrap:not(:hover) .player-controls:not(.always-show) { opacity: 0; }
+    .player-wrap:not(:hover) .player-controls { opacity: 0; }
     .ctrl-btn {
-      width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+      width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
       background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       border: 1px solid rgba(255,255,255,0.15); color: var(--white);
-      cursor: pointer; transition: all var(--transition);
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .ctrl-btn:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: scale(1.1); }
+    .ctrl-btn:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: scale(1.15); box-shadow: 0 0 16px rgba(255,213,79,0.3); }
+    .ctrl-btn:active { transform: scale(0.9); }
     .ctrl-btn svg { width: 18px; height: 18px; }
 
-    /* ── Scorecard ── */
+    /* ══════════════════════════════════════
+       SCORECARD
+    ══════════════════════════════════════ */
     .scorecard {
       margin-top: 16px; background: var(--bg-glass);
       backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
@@ -194,19 +227,23 @@
       width: 56px; height: 56px; border-radius: 50%;
       display: grid; place-items: center; font-size: 32px;
       background: rgba(255,255,255,0.04); border: 1px solid var(--border); overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+    .team-flag:hover { transform: scale(1.1); box-shadow: 0 0 16px rgba(255,213,79,0.2); }
     .team-flag img { width: 100%; height: 100%; object-fit: contain; }
     .team-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .team-name.short { font-size: 11px; color: var(--text-dim); }
     .score-num { display: flex; align-items: center; gap: 12px; }
-    .score-num .num { font-size: 48px; font-weight: 900; letter-spacing: -2px; font-variant-numeric: tabular-nums; min-width: 50px; text-align: center; }
+    .score-num .num { font-size: 48px; font-weight: 900; letter-spacing: -2px; font-variant-numeric: tabular-nums; min-width: 50px; text-align: center; background: linear-gradient(180deg, var(--silver), var(--silver-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .score-num .dash { font-size: 28px; font-weight: 300; color: var(--text-dim); }
     .score-timer { text-align: center; margin-top: 8px; }
-    .score-timer .time { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--emerald); }
+    .score-timer .time { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--emerald); text-shadow: 0 0 20px rgba(57,231,95,0.3); }
     .score-timer .half { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
     .score-venue { text-align: center; margin-top: 6px; font-size: 11px; color: var(--text-dim); }
 
-    /* ── Match Selector ── */
+    /* ══════════════════════════════════════
+       MATCH SELECTOR
+    ══════════════════════════════════════ */
     .match-selector { margin-top: 14px; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
     .match-selector::-webkit-scrollbar { height: 4px; }
     .match-selector::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
@@ -217,30 +254,36 @@
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; font-family: inherit;
     }
     .match-chip:hover { color: var(--white); border-color: rgba(255,255,255,0.15); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-    .match-chip:active { transform: translateY(0) scale(0.97); }
-    .match-chip.active { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); }
+    .match-chip:active { transform: translateY(0) scale(0.95); }
+    .match-chip.active { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); box-shadow: 0 0 12px rgba(255,213,79,0.15); }
 
-    /* ── Tabs ── */
+    /* ══════════════════════════════════════
+       TABS
+    ══════════════════════════════════════ */
     .tabs { display: flex; gap: 4px; margin-top: 20px; background: rgba(255,255,255,0.04); border-radius: var(--radius-pill); padding: 4px; }
     .tab-btn {
-      flex: 1; padding: 10px 16px; border: none; background: none;
-      border-radius: var(--radius-pill); color: var(--text-dim);
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family: inherit;
+      flex: 1; padding: 10px 16px;
+      border-radius: var(--radius-pill); background: none; color: var(--text-dim);
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .tab-btn:hover { color: var(--white); }
+    .tab-btn:hover { color: var(--white); transform: scale(1.03); }
+    .tab-btn:active { transform: scale(0.95); }
     .tab-btn.active { background: var(--gold-dim); color: var(--gold); }
     .tab-content { display: none; margin-top: 16px; }
     .tab-content.active { display: block; }
 
-    /* ── Events ── */
+    /* ══════════════════════════════════════
+       EVENTS
+    ══════════════════════════════════════ */
     .events-list { display: flex; flex-direction: column; gap: 10px; }
     .event-item {
       display: flex; align-items: center; gap: 14px; padding: 12px 16px;
       background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: var(--radius-sm);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: default;
     }
-    .event-item:hover { background: rgba(255,255,255,0.07); transform: translateX(4px); }
+    .event-item:hover { background: rgba(255,255,255,0.07); transform: translateX(6px); border-color: rgba(255,255,255,0.12); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
     .event-icon { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
     .event-icon.goal { background: var(--gold-dim); }
     .event-icon.card-yellow { background: rgba(255, 204, 0, 0.15); }
@@ -253,7 +296,9 @@
     .event-detail { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
     .event-min { font-size: 12px; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
 
-    /* ── Lineups ── */
+    /* ══════════════════════════════════════
+       LINEUPS
+    ══════════════════════════════════════ */
     .lineups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .lineup-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
     .lineup-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
@@ -267,12 +312,14 @@
       display: flex; align-items: center; gap: 5px; padding: 5px 10px;
       border-radius: var(--radius-pill); background: rgba(255,255,255,0.05);
       border: 1px solid var(--border); font-size: 11px; font-weight: 500;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: default;
     }
-    .player-chip:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+    .player-chip:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .player-num { width: 20px; height: 20px; border-radius: 50%; background: var(--gold-dim); color: var(--gold); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
 
-    /* ── Stats ── */
+    /* ══════════════════════════════════════
+       STATS
+    ══════════════════════════════════════ */
     .stats-list { display: flex; flex-direction: column; gap: 12px; }
     .stat-row { display: flex; flex-direction: column; gap: 5px; }
     .stat-labels { display: flex; justify-content: space-between; align-items: center; }
@@ -280,32 +327,33 @@
     .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
     .stat-bar-wrap { display: flex; gap: 4px; height: 5px; }
     .stat-bar { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
-    .stat-bar.left { background: var(--emerald); }
-    .stat-bar.right { background: var(--gold); margin-left: auto; }
+    .stat-bar.left { background: linear-gradient(90deg, var(--emerald), rgba(57,231,95,0.6)); }
+    .stat-bar.right { background: linear-gradient(90deg, rgba(255,213,79,0.6), var(--gold)); margin-left: auto; }
 
-    /* ── Footer ── */
-    .footer {
-      margin-top: 48px; padding: 28px 0; text-align: center;
-      border-top: 1px solid var(--border);
-    }
+    /* ══════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════ */
+    .footer { margin-top: 48px; padding: 28px 0; text-align: center; border-top: 1px solid var(--border); }
     .footer-brand { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: var(--gold); margin-bottom: 12px; }
     .footer-brand .x { color: var(--emerald); }
     .footer-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
     .footer-link {
-      display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+      display: flex; align-items: center; gap: 8px; padding: 10px 20px;
       border-radius: var(--radius-pill);
       background: rgba(255,255,255,0.04); border: 1px solid var(--border);
       color: var(--text-dim); font-size: 13px; font-weight: 500; text-decoration: none;
-      transition: all var(--transition);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .footer-link:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: translateY(-2px); }
+    .footer-link:hover { background: var(--gold-dim); color: var(--gold); border-color: var(--border-gold); transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,213,79,0.15); }
+    .footer-link:active { transform: translateY(0) scale(0.95); }
     .footer-link svg { width: 16px; height: 16px; }
     .footer-copy { font-size: 11px; color: var(--text-dim); }
     .footer-copy span { color: var(--gold); font-weight: 600; }
-
     .no-data { text-align: center; padding: 36px; color: var(--text-dim); font-size: 13px; }
 
-    /* ── Fullscreen prompt overlay ── */
+    /* ══════════════════════════════════════
+       FULLSCREEN PROMPT
+    ══════════════════════════════════════ */
     .fs-prompt {
       position: fixed; inset: 0; z-index: 10000;
       display: none; align-items: center; justify-content: center;
@@ -322,11 +370,12 @@
     .fs-prompt-actions { display: flex; gap: 10px; justify-content: center; }
     .fs-prompt-actions button {
       padding: 10px 24px; border-radius: var(--radius-sm); font-weight: 600; font-size: 13px;
-      font-family: inherit; cursor: pointer; transition: all var(--transition); border: none;
+      font-family: inherit; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .fs-yes { background: var(--gold); color: #0D1117; }
-    .fs-yes:hover { box-shadow: 0 4px 16px rgba(255,213,79,0.3); }
-    .fs-no { background: rgba(255,255,255,0.08); color: var(--text-dim); border: 1px solid var(--border) !important; }
+    .fs-yes:hover { box-shadow: 0 4px 16px rgba(255,213,79,0.3); transform: translateY(-2px); }
+    .fs-yes:active { transform: translateY(0) scale(0.95); }
+    .fs-no { background: rgba(255,255,255,0.08); color: var(--text-dim); border: 1px solid var(--border); }
     .fs-no:hover { background: rgba(255,255,255,0.12); color: var(--white); }
 
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.5); } }
@@ -336,8 +385,6 @@
       .nav-brand-text { font-size: 15px; }
       .main { padding: 72px 10px 24px; }
       .player-wrap { border-radius: var(--radius-sm); }
-      .proxy-input-row { flex-direction: column; }
-      .proxy-btn { width: 100%; }
       .scorecard { padding: 16px; }
       .score-main { gap: 12px; }
       .team-flag { width: 44px; height: 44px; font-size: 24px; }
@@ -352,11 +399,19 @@
   </style>
 </head>
 <body>
+  <!-- LOADING SCREEN -->
+  <div class="loader-overlay" id="loader">
+    <img class="loader-logo" src="https://i.ibb.co/F4NJmwXs/file-00000000115471faa85d6fe7097c0c63.png" alt="ZedX Foxy">
+    <div class="loader-text">ZED<span class="x">X</span> FOXY</div>
+    <div class="loader-sub">Live The Game</div>
+    <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  </div>
+
   <div class="stadium-bg"></div>
 
   <nav class="navbar">
     <div class="nav-brand">
-      <img class="nav-logo-img" src="https://i.ibb.co/CKNvm76J" alt="ZedX Foxy" onerror="this.style.display='none'">
+      <img class="nav-logo-img" src="https://i.ibb.co/F4NJmwXs/file-00000000115471faa85d6fe7097c0c63.png" alt="ZedX Foxy" onerror="this.style.display='none'">
       <span class="nav-brand-text">ZED<span class="x">X</span> FOXY</span>
     </div>
     <div class="nav-right">
@@ -373,29 +428,17 @@
   </nav>
 
   <main class="main">
-    <!-- Proxy URL Input -->
-    <div class="proxy-bar">
-      <label>Stream Proxy</label>
-      <div class="proxy-input-row">
-        <input class="proxy-input" id="proxyUrl" type="url" placeholder="Paste stream URL (m3u8, mp4, embed, or any video link)" spellcheck="false">
-        <button class="proxy-btn" id="proxyBtn" onclick="loadProxy()">
-          <span>Stream It</span>
-        </button>
-      </div>
-      <div class="proxy-hint">Paste any streaming URL and watch in fullscreen. Supports m3u8, mp4, embed iframes, and more.</div>
-    </div>
-
     <!-- Player -->
     <div class="player-wrap" id="playerWrap">
       <iframe class="player-iframe" id="playerFrame" src="https://allrounder20ty.dillzycreations.workers.dev/fifa/foxy" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" allow="autoplay; fullscreen; encrypted-media" allowfullscreen loading="lazy"></iframe>
       <div class="player-overlay">
         <div class="player-brand">
-          <img src="https://i.ibb.co/CKNvm76J" alt="" onerror="this.style.display='none'">
+          <img src="https://i.ibb.co/F4NJmwXs/file-00000000115471faa85d6fe7097c0c63.png" alt="" onerror="this.style.display='none'">
           ZedX Foxy
         </div>
         <div class="player-live"><span class="dot"></span> LIVE</div>
       </div>
-      <div class="player-controls always-show">
+      <div class="player-controls">
         <button class="ctrl-btn" onclick="goFullscreen()" title="Fullscreen">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
         </button>
@@ -427,7 +470,7 @@
       </div>
       <div class="score-timer">
         <div class="time" id="matchTimer">- -</div>
-        <div class="half" id="matchHalf">Waiting for data...</div>
+        <div class="half" id="matchHalf">Waiting for match data...</div>
       </div>
       <div class="score-venue" id="matchVenue"></div>
     </section>
@@ -460,7 +503,7 @@
     </footer>
   </main>
 
-  <!-- Fullscreen orientation prompt (mobile) -->
+  <!-- Fullscreen orientation prompt -->
   <div class="fs-prompt" id="fsPrompt">
     <div class="fs-prompt-box">
       <h3>Rotate to Landscape</h3>
@@ -473,105 +516,49 @@
   </div>
 
   <script>
-    /* ── Proxy URL Loader ── */
-    function loadProxy() {
-      const url = document.getElementById('proxyUrl').value.trim();
-      if (!url) return;
-      const iframe = document.getElementById('playerFrame');
+    /* ══════════════════════════════════════
+       LOADER
+    ══════════════════════════════════════ */
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('loader').classList.add('hidden');
+      }, 2200);
+    });
 
-      // If it's an m3u8, use hls.js player
-      if (url.includes('.m3u8') || url.includes('m3u8')) {
-        // Create a mini HLS player page
-        iframe.srcdoc = `
-          <!DOCTYPE html>
-          <html><head>
-            <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"><\/script>
-            <style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}video{width:100%;height:100%;object-fit:contain;}</style>
-          </head><body>
-            <video id="v" autoplay muted controls playsinline></video>
-            <script>
-              var video=document.getElementById('v');
-              if(Hls.isSupported()){var hls=new Hls();hls.loadSource('${url.replace(/'/g, "\\'")}');hls.attachMedia(video);hls.on(Hls.Events.MANIFEST_PARSED,function(){video.play()})}
-              else if(video.canPlayType('application/vnd.apple.mpegurl')){video.src='${url.replace(/'/g, "\\'")}';video.addEventListener('loadedmetadata',function(){video.play()})}
-            <\/script>
-          </body></html>`;
-      }
-      // If it looks like an embed URL, use directly
-      else if (url.includes('embed') || url.includes('iframe') || url.includes('player')) {
-        iframe.src = url;
-      }
-      // Otherwise wrap in a video player
-      else {
-        iframe.srcdoc = `
-          <!DOCTYPE html>
-          <html><head>
-            <style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}video{width:100%;height:100%;object-fit:contain;}</style>
-          </head><body>
-            <video autoplay controls playsinline>
-              <source src="${url.replace(/'/g, "\\'")}" type="video/mp4">
-            </video>
-          </body></html>`;
-      }
-
-      // Show player overlay briefly
-      const overlay = document.querySelector('.player-overlay');
-      overlay.style.opacity = '1';
-      setTimeout(() => { overlay.style.opacity = ''; }, 3000);
-    }
-
-    /* ── Fullscreen ── */
+    /* ══════════════════════════════════════
+       FULLSCREEN
+    ══════════════════════════════════════ */
     function goFullscreen() {
       const wrap = document.getElementById('playerWrap');
-
-      // Request browser fullscreen
       if (wrap.requestFullscreen) wrap.requestFullscreen();
       else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen();
       else if (wrap.msRequestFullscreen) wrap.msRequestFullscreen();
-
       wrap.classList.add('fullscreen-mode');
-
-      // Try landscape lock on mobile
       if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock('landscape').catch(() => {});
       }
-
-      // Show prompt on mobile if portrait
       if (window.innerWidth < window.innerHeight && screen.orientation) {
         document.getElementById('fsPrompt').classList.add('show');
       }
     }
-
     function confirmLandscape() {
       document.getElementById('fsPrompt').classList.remove('show');
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {});
-      }
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
     }
-
-    function dismissPrompt() {
-      document.getElementById('fsPrompt').classList.remove('show');
-    }
-
-    // Exit fullscreen handler
+    function dismissPrompt() { document.getElementById('fsPrompt').classList.remove('show'); }
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        document.getElementById('playerWrap').classList.remove('fullscreen-mode');
-      }
+      if (!document.fullscreenElement) document.getElementById('playerWrap').classList.remove('fullscreen-mode');
     });
     document.addEventListener('webkitfullscreenchange', () => {
-      if (!document.webkitFullscreenElement) {
-        document.getElementById('playerWrap').classList.remove('fullscreen-mode');
-      }
+      if (!document.webkitFullscreenElement) document.getElementById('playerWrap').classList.remove('fullscreen-mode');
     });
-
-    // Keyboard ESC
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && document.fullscreenElement) {
-        document.exitFullscreen();
-      }
+      if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
     });
 
-    /* ── Football API ── */
+    /* ══════════════════════════════════════
+       FOOTBALL API
+    ══════════════════════════════════════ */
     const API_KEY = '6a228c3a6d641d1e4fc1c7d32222f039';
     const API_BASE = 'https://v3.football.api-sports.io';
     let currentFixtureId = null;
@@ -579,19 +566,31 @@
 
     async function apiFetch(path) {
       const r = await fetch(`${API_BASE}${path}`, { headers: { 'x-apisports-key': API_KEY } });
+      if (!r.ok) throw new Error(`API ${r.status}`);
       return r.json();
     }
 
     async function fetchLiveMatches() {
-      const d = await apiFetch('/fixtures?live=all');
-      allLiveFixtures = (d.response || []).filter(m =>
-        m.league && (m.league.name === 'World Cup' || m.league.name === 'FIFA Club World Cup' ||
-        m.league.country === 'World' || m.league.id === 1)
-      );
-      if (allLiveFixtures.length === 0) allLiveFixtures = d.response || [];
-      renderMatchSelector();
-      if (allLiveFixtures.length > 0 && !currentFixtureId) {
-        selectMatch(allLiveFixtures[0].fixture.id);
+      try {
+        const d = await apiFetch('/fixtures?live=all');
+        if (d.errors && Object.keys(d.errors).length) {
+          console.error('API errors:', d.errors);
+          document.getElementById('matchHalf').textContent = 'API error — check key';
+          return;
+        }
+        allLiveFixtures = (d.response || []).filter(m =>
+          m.league && (m.league.name === 'World Cup' || m.league.name === 'FIFA Club World Cup' ||
+          m.league.country === 'World' || m.league.id === 1)
+        );
+        if (allLiveFixtures.length === 0) allLiveFixtures = d.response || [];
+        document.getElementById('matchHalf').textContent = allLiveFixtures.length > 0 ? 'Live matches found' : 'No live matches right now';
+        renderMatchSelector();
+        if (allLiveFixtures.length > 0 && !currentFixtureId) {
+          selectMatch(allLiveFixtures[0].fixture.id);
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+        document.getElementById('matchHalf').textContent = 'Connection error — retrying...';
       }
     }
 
@@ -611,38 +610,37 @@
       document.getElementById('eventsList').innerHTML = '<div class="no-data">Loading...</div>';
       document.getElementById('lineupsGrid').innerHTML = '<div class="no-data">Loading...</div>';
       document.getElementById('statsList').innerHTML = '<div class="no-data">Loading...</div>';
-
-      const [fixtureD, eventsD, lineupsD, statsD] = await Promise.all([
-        apiFetch(`/fixtures?id=${fixtureId}`),
-        apiFetch(`/fixtures/events?fixture=${fixtureId}`),
-        apiFetch(`/fixtures/lineups?fixture=${fixtureId}`),
-        apiFetch(`/fixtures/statistics?fixture=${fixtureId}`),
-      ]);
-
-      const f = (fixtureD.response || [])[0];
-      if (!f) return;
-
-      const fix = f.fixture; const teams = f.teams; const goals = f.goals;
-      document.getElementById('matchComp').textContent = `${f.league.name} ${f.league.season} — ${f.league.round || ''}`;
-      document.getElementById('homeName').textContent = teams.home.name;
-      document.getElementById('homeCode').textContent = teams.home.code || '';
-      document.getElementById('awayName').textContent = teams.away.name;
-      document.getElementById('awayCode').textContent = teams.away.code || '';
-      document.getElementById('scoreHome').textContent = goals.home ?? '-';
-      document.getElementById('scoreAway').textContent = goals.away ?? '-';
-      document.getElementById('homeFlag').innerHTML = `<img src="${teams.home.logo}" alt="${teams.home.name}" onerror="this.parentElement.textContent='⚽'">`;
-      document.getElementById('awayFlag').innerHTML = `<img src="${teams.away.logo}" alt="${teams.away.name}" onerror="this.parentElement.textContent='⚽'">`;
-
-      const elapsed = fix.status.elapsed;
-      const statusShort = fix.status.short;
-      document.getElementById('matchTimer').textContent = elapsed ? `${elapsed}'` : statusShort;
-      document.getElementById('matchHalf').textContent = fix.status.long;
-      document.getElementById('statusText').textContent = statusShort === 'FT' ? 'FT' : statusShort === 'HT' ? 'HT' : 'LIVE';
-      document.getElementById('matchVenue').textContent = fix.venue ? `${fix.venue.name || ''} ${fix.venue.city ? '— ' + fix.venue.city : ''}` : '';
-
-      renderEvents(eventsD.response || []);
-      renderLineups(lineupsD.response || []);
-      renderStats(statsD.response || []);
+      try {
+        const [fixtureD, eventsD, lineupsD, statsD] = await Promise.all([
+          apiFetch(`/fixtures?id=${fixtureId}`),
+          apiFetch(`/fixtures/events?fixture=${fixtureId}`),
+          apiFetch(`/fixtures/lineups?fixture=${fixtureId}`),
+          apiFetch(`/fixtures/statistics?fixture=${fixtureId}`),
+        ]);
+        const f = (fixtureD.response || [])[0];
+        if (!f) return;
+        const fix = f.fixture; const teams = f.teams; const goals = f.goals;
+        document.getElementById('matchComp').textContent = `${f.league.name} ${f.league.season} — ${f.league.round || ''}`;
+        document.getElementById('homeName').textContent = teams.home.name;
+        document.getElementById('homeCode').textContent = teams.home.code || '';
+        document.getElementById('awayName').textContent = teams.away.name;
+        document.getElementById('awayCode').textContent = teams.away.code || '';
+        document.getElementById('scoreHome').textContent = goals.home ?? '-';
+        document.getElementById('scoreAway').textContent = goals.away ?? '-';
+        document.getElementById('homeFlag').innerHTML = `<img src="${teams.home.logo}" alt="${teams.home.name}" onerror="this.parentElement.textContent='⚽'">`;
+        document.getElementById('awayFlag').innerHTML = `<img src="${teams.away.logo}" alt="${teams.away.name}" onerror="this.parentElement.textContent='⚽'">`;
+        const elapsed = fix.status.elapsed;
+        const statusShort = fix.status.short;
+        document.getElementById('matchTimer').textContent = elapsed ? `${elapsed}'` : statusShort;
+        document.getElementById('matchHalf').textContent = fix.status.long;
+        document.getElementById('statusText').textContent = statusShort === 'FT' ? 'FT' : statusShort === 'HT' ? 'HT' : 'LIVE';
+        document.getElementById('matchVenue').textContent = fix.venue ? `${fix.venue.name || ''} ${fix.venue.city ? '— ' + fix.venue.city : ''}` : '';
+        renderEvents(eventsD.response || []);
+        renderLineups(lineupsD.response || []);
+        renderStats(statsD.response || []);
+      } catch (err) {
+        console.error('Match load error:', err);
+      }
     }
 
     function renderEvents(events) {
@@ -678,12 +676,10 @@
       const grid = document.getElementById('lineupsGrid');
       if (!teams.length) { grid.innerHTML = '<div class="no-data">Lineups not available yet</div>'; return; }
       grid.innerHTML = teams.map(t => {
-        const team = t.team;
-        const formation = t.formation || '?';
+        const team = t.team; const formation = t.formation || '?';
         const posGroups = { G: [], D: [], M: [], F: [] };
         (t.startXI || []).forEach(entry => {
-          const p = entry.player;
-          const pos = p.pos || 'M';
+          const p = entry.player; const pos = p.pos || 'M';
           (posGroups[pos] || posGroups.M).push(p);
         });
         let html = `<div class="lineup-card">
@@ -710,7 +706,6 @@
       const homeStats = {}; const awayStats = {};
       (home.statistics || []).forEach(s => { homeStats[s.type] = s.value; });
       (away.statistics || []).forEach(s => { awayStats[s.type] = s.value; });
-
       const statDefs = [
         { label: 'Ball Possession', apiLabel: 'Ball Possession', isPercent: true },
         { label: 'Total Shots', apiLabel: 'Total Shots' },
@@ -727,7 +722,6 @@
         { label: 'Pass Accuracy', apiLabel: 'Passes accurate' },
         { label: 'Expected Goals', apiLabel: 'expected_goals' },
       ];
-
       list.innerHTML = statDefs.map(s => {
         let hv = parseInt(homeStats[s.apiLabel]) || 0;
         let av = parseInt(awayStats[s.apiLabel]) || 0;
@@ -747,13 +741,14 @@
           </div>
         </div>`;
       }).join('');
-
       setTimeout(() => {
         document.querySelectorAll('.stat-bar').forEach(bar => { bar.style.width = bar.dataset.w; });
       }, 100);
     }
 
-    /* ── Tabs ── */
+    /* ══════════════════════════════════════
+       TABS
+    ══════════════════════════════════════ */
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -766,20 +761,14 @@
       });
     });
 
-    /* ── Enter key on URL input ── */
-    document.getElementById('proxyUrl').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') loadProxy();
-    });
-
-    /* ── Init ── */
+    /* ══════════════════════════════════════
+       INIT
+    ══════════════════════════════════════ */
     (async function init() {
       await fetchLiveMatches();
-
-      gsap.from('.navbar', { y: -60, opacity: 0, duration: 0.6, ease: 'power3.out' });
-      gsap.from('.proxy-bar', { y: 20, opacity: 0, duration: 0.5, delay: 0.1, ease: 'power3.out' });
-      gsap.from('#playerWrap', { opacity: 0, scale: 0.97, duration: 0.6, delay: 0.2, ease: 'power3.out' });
-      gsap.from('#scorecard', { y: 30, opacity: 0, duration: 0.5, delay: 0.35, ease: 'power3.out' });
-
+      gsap.from('.navbar', { y: -60, opacity: 0, duration: 0.6, delay: 2.2, ease: 'power3.out' });
+      gsap.from('#playerWrap', { opacity: 0, scale: 0.97, duration: 0.7, delay: 2.3, ease: 'power3.out' });
+      gsap.from('#scorecard', { y: 40, opacity: 0, duration: 0.6, delay: 2.5, ease: 'power3.out' });
       setInterval(async () => {
         if (currentFixtureId) await selectMatch(currentFixtureId);
         await fetchLiveMatches();
